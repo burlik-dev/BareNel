@@ -5,3 +5,8 @@ CHAR16* boot_name;
 CHAR16* file_path;
 UINTN config_size = 512;
 CHAR16* autoboot;
+
+
+int boot_name_size;
+int file_path_size;
+int autoboot_size;
