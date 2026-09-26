@@ -3,6 +3,8 @@
 #include "headers/config_worker.h"
 #include "headers/gui.h"
 #include "headers/debug.h"
+#include "headers/boot_process.h"
+
 
 extern void InitConsole(EFI_HANDLE console_handle, EFI_HANDLE_PROTOCOL handle_protocol);
 extern EFI_STATUS EFIAPI ConsolePrint(CHAR16* string);
@@ -16,6 +18,22 @@ extern void DrawGUI();
 
 extern CHAR16* UNSIGNED_INTEGER_TO_STR(EFI_BOOT_SERVICES* boot_services, UINTN number, int *size);
 extern void PrintMemoryMap(EFI_BOOT_SERVICES* boot_services, unsigned char mode);
+
+extern void* FindACPITable(void* xsdt, int signature);
+extern void LoadKernel(EFI_BOOT_SERVICES* boot_services, void* rsdp_pointer);
+
+
+char CompareGUIDS(EFI_GUID* a, EFI_GUID* b){
+    for(int i = 0; i < 16; i++){
+        char first = *((char*)(a) + i);
+        char second = *((char*)(b) + i);
+        if(first != second){
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 EFI_STATUS EFIAPI EFI_MAIN (IN EFI_HANDLE ImageHandle,IN EFI_SYSTEM_TABLE* SystemTable){
     con_out = SystemTable->ConOut;
@@ -66,14 +84,20 @@ EFI_STATUS EFIAPI EFI_MAIN (IN EFI_HANDLE ImageHandle,IN EFI_SYSTEM_TABLE* Syste
 
     //ConsolePrint(UNSIGNED_INTEGER_TO_STR(SystemTable->BootServices, 253667));
     ConsoleNewRow();
-    PrintMemoryMap(SystemTable->BootServices, 1);
+    //PrintMemoryMap(SystemTable->BootServices, 1);
 
     //DrawGUI();
+    void* rsdp_pointer;
+    EFI_GUID rsdp_guid = {0x8868e871, 0xe4f1, 0x11d3, 0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81};
 
+    for(int i = 0; i < SystemTable->NumberOfTableEntries; i++){
+        if(CompareGUIDS(&SystemTable->ConfigurationTable[i].VendorGuid, &rsdp_guid)){rsdp_pointer = SystemTable->ConfigurationTable[i].VendorTable; break;}
+    }
+
+    LoadKernel(SystemTable->BootServices, rsdp_pointer);
     while(1){
         //DrawGUI();
     }
-
 
 
     return 0;
